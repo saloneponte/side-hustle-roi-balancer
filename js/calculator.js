@@ -790,43 +790,93 @@ function updateIncorporationDisplay(result) {
 // 分岐点チャート表示
 function updateBreakEvenChart(breakEvenData) {
     const chartContainer = document.getElementById('breakEvenChart');
-    const points = breakEvenData.incomePoints.filter((_, i) => i % 4 === 0); // 表示間隔調整
+    const points = breakEvenData.incomePoints.filter((_, i) => i % 6 === 0); // 表示数を減らす
+    
+    // 全体の最大値を取得（チャート全体のスケール調整）
+    const globalMaxIncome = Math.max(...points.map(p => Math.max(p.individualNet, p.corporationNet)));
     
     chartContainer.innerHTML = `
-        <div class="space-y-2">
-            <div class="text-sm text-gray-600 mb-4">
-                <span class="inline-block w-4 h-4 bg-blue-500 rounded mr-2"></span>個人事業主
-                <span class="inline-block w-4 h-4 bg-purple-500 rounded mr-2 ml-4"></span>法人
-                <span class="ml-4 font-semibold">分岐点: ${formatCurrency(breakEvenData.breakEvenIncome)}</span>
+        <div class="space-y-4">
+            <!-- 凡例 -->
+            <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600 pb-4 border-b">
+                <div class="flex items-center">
+                    <span class="inline-block w-4 h-3 bg-blue-500 rounded mr-2"></span>個人事業主
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-4 h-3 bg-purple-500 rounded mr-2"></span>法人
+                </div>
+                <div class="flex items-center font-semibold text-green-600">
+                    <span class="mr-2">🎯</span>分岐点: ${formatCurrency(breakEvenData.breakEvenIncome)}
+                </div>
             </div>
-            ${points.map(point => {
-                const maxIncome = Math.max(point.individualNet, point.corporationNet);
-                const individualWidth = (point.individualNet / maxIncome) * 100;
-                const corporationWidth = (point.corporationNet / maxIncome) * 100;
-                const isBreakEven = point.income >= breakEvenData.breakEvenIncome;
-                
-                return `
-                    <div class="border-l-4 ${isBreakEven ? 'border-green-500' : 'border-gray-300'} pl-4 py-2">
-                        <div class="text-sm font-medium">${formatCurrency(point.income)}</div>
-                        <div class="mt-1 space-y-1">
-                            <div class="flex items-center">
-                                <span class="w-16 text-xs">個人:</span>
-                                <div class="flex-1 bg-gray-200 rounded h-4 mx-2">
-                                    <div class="bg-blue-500 h-4 rounded" style="width: ${individualWidth}%"></div>
+            
+            <!-- チャートエリア -->
+            <div class="space-y-6">
+                ${points.map(point => {
+                    const individualWidth = Math.max((point.individualNet / globalMaxIncome) * 100, 2);
+                    const corporationWidth = Math.max((point.corporationNet / globalMaxIncome) * 100, 2);
+                    const isBreakEven = point.income >= breakEvenData.breakEvenIncome;
+                    const difference = point.corporationNet - point.individualNet;
+                    const isCorporationBetter = difference > 0;
+                    
+                    return `
+                        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 ${isBreakEven ? 'border-green-400' : 'border-gray-300'}">
+                            <!-- 年収表示 -->
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="font-semibold text-gray-800">年収 ${formatCurrency(point.income)}</h5>
+                                <div class="text-sm ${isCorporationBetter ? 'text-green-600' : 'text-blue-600'} font-medium">
+                                    ${isCorporationBetter ? '法人有利' : '個人有利'} 
+                                    <span class="text-xs">(${formatCurrency(Math.abs(difference))}差)</span>
                                 </div>
-                                <span class="text-xs w-20">${formatCurrency(point.individualNet)}</span>
                             </div>
-                            <div class="flex items-center">
-                                <span class="w-16 text-xs">法人:</span>
-                                <div class="flex-1 bg-gray-200 rounded h-4 mx-2">
-                                    <div class="bg-purple-500 h-4 rounded" style="width: ${corporationWidth}%"></div>
+                            
+                            <!-- 比較バー -->
+                            <div class="space-y-3">
+                                <!-- 個人事業主 -->
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-blue-700 font-medium">👤 個人事業主</span>
+                                        <span class="font-semibold">${formatCurrency(point.individualNet)}</span>
+                                    </div>
+                                    <div class="bg-gray-100 rounded-full h-6 overflow-hidden">
+                                        <div class="bg-blue-500 h-6 rounded-full flex items-center justify-end pr-2 text-white text-xs font-medium" 
+                                             style="width: ${individualWidth}%; min-width: 60px;">
+                                            ${individualWidth.toFixed(0)}%
+                                        </div>
+                                    </div>
                                 </div>
-                                <span class="text-xs w-20">${formatCurrency(point.corporationNet)}</span>
+                                
+                                <!-- 法人 -->
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-purple-700 font-medium">🏢 法人</span>
+                                        <span class="font-semibold">${formatCurrency(point.corporationNet)}</span>
+                                    </div>
+                                    <div class="bg-gray-100 rounded-full h-6 overflow-hidden">
+                                        <div class="bg-purple-500 h-6 rounded-full flex items-center justify-end pr-2 text-white text-xs font-medium" 
+                                             style="width: ${corporationWidth}%; min-width: 60px;">
+                                            ${corporationWidth.toFixed(0)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 差額表示 -->
+                            <div class="mt-3 pt-3 border-t text-center">
+                                <span class="text-xs text-gray-500">手取り差額: </span>
+                                <span class="font-semibold ${isCorporationBetter ? 'text-green-600' : 'text-red-600'}">
+                                    ${isCorporationBetter ? '+' : ''}${formatCurrency(difference)}
+                                </span>
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('')}
+                    `;
+                }).join('')}
+            </div>
+            
+            <!-- チャート説明 -->
+            <div class="text-xs text-gray-500 text-center mt-4 p-3 bg-gray-50 rounded">
+                💡 グラフは手取り額の比較を表示しています。緑の境界線が法人化推奨ラインです。
+            </div>
         </div>
     `;
 }
