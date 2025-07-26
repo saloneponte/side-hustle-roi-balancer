@@ -29,11 +29,25 @@ function hideROIDashboard() {
     document.body.scrollIntoView({ behavior: 'smooth' });
 }
 
+function showIncorporationAnalysis() {
+    hideAllSections();
+    document.getElementById('incorporation-analysis').style.display = 'block';
+    document.getElementById('incorporation-analysis').scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideIncorporationAnalysis() {
+    document.getElementById('incorporation-analysis').style.display = 'none';
+    document.getElementById('incorporationResults').style.display = 'none';
+    document.body.scrollIntoView({ behavior: 'smooth' });
+}
+
 function hideAllSections() {
     document.getElementById('calculator').style.display = 'none';
     document.getElementById('roi-dashboard').style.display = 'none';
+    document.getElementById('incorporation-analysis').style.display = 'none';
     document.getElementById('results').style.display = 'none';
     document.getElementById('roiResults').style.display = 'none';
+    document.getElementById('incorporationResults').style.display = 'none';
 }
 
 // 税額計算の基本レート（2024年度）
@@ -51,6 +65,19 @@ const TAX_RATES = {
     
     // 住民税率（所得割）
     residentTax: 0.10, // 10%（市民税6% + 県民税4%）
+    
+    // 法人税率
+    corporationTax: {
+        small: 0.15,        // 中小企業：年800万円以下
+        large: 0.236,       // 中小企業：年800万円超、一般企業
+        localTax: 0.173     // 地方法人税・住民税・事業税の合計概算
+    },
+    
+    // 個人事業税率
+    businessTax: {
+        rate: 0.05,         // 5%（事業の種類による）
+        deduction: 2900000  // 事業主控除290万円
+    },
     
     // 社会保険料率（給与所得者）
     socialInsurance: {
@@ -258,6 +285,244 @@ function generateROISuggestions(metrics) {
     return suggestions;
 }
 
+// 法人化分析関数
+function calculateIncorporationAnalysis(data) {
+    const {
+        salary, businessIncome, businessExpenses, 
+        desiredSalary, corporationCosts, expectedGrowth,
+        considerSocialInsurance, considerRetirement
+    } = data;
+    
+    // 個人事業主の場合の計算
+    const individualAnalysis = calculateIndividualBusiness(
+        salary, businessIncome, businessExpenses, considerSocialInsurance
+    );
+    
+    // 法人の場合の計算
+    const corporationAnalysis = calculateCorporation(
+        businessIncome, businessExpenses, desiredSalary, 
+        corporationCosts, considerSocialInsurance
+    );
+    
+    // 分岐点の計算
+    const breakEvenPoint = calculateBreakEvenPoint(
+        salary, businessExpenses, corporationCosts, expectedGrowth
+    );
+    
+    // 将来予測
+    const futureProjection = calculateFutureProjection(
+        businessIncome, expectedGrowth, breakEvenPoint, 5
+    );
+    
+    // 推奨判定
+    const recommendation = generateIncorporationRecommendation(
+        individualAnalysis, corporationAnalysis, breakEvenPoint, businessIncome
+    );
+    
+    return {
+        individual: individualAnalysis,
+        corporation: corporationAnalysis,
+        breakEvenPoint,
+        futureProjection,
+        recommendation,
+        currentDifference: corporationAnalysis.netIncome - individualAnalysis.netIncome
+    };
+}
+
+// 個人事業主の税務計算
+function calculateIndividualBusiness(salary, businessIncome, businessExpenses, considerSocialInsurance) {
+    const businessProfit = businessIncome - businessExpenses;
+    
+    // 給与所得控除
+    const salaryDeduction = calculateSalaryDeduction(salary);
+    const salaryTaxableIncome = Math.max(0, salary - salaryDeduction);
+    
+    // 事業所得（青色申告特別控除65万円を適用）
+    const businessTaxableIncome = Math.max(0, businessProfit - 650000);
+    
+    // 合計所得
+    const totalTaxableIncome = salaryTaxableIncome + businessTaxableIncome;
+    const adjustedTaxableIncome = Math.max(0, totalTaxableIncome - DEDUCTIONS.basic);
+    
+    // 税額計算
+    const incomeTax = calculateIncomeTax(adjustedTaxableIncome);
+    const residentTax = calculateResidentTax(totalTaxableIncome);
+    
+    // 個人事業税
+    const businessTax = businessTaxableIncome > TAX_RATES.businessTax.deduction 
+        ? (businessTaxableIncome - TAX_RATES.businessTax.deduction) * TAX_RATES.businessTax.rate 
+        : 0;
+    
+    // 社会保険料（給与分）
+    const socialInsurance = calculateSocialInsurance(salary);
+    
+    // 国民健康保険（事業所得分の概算）
+    const healthInsuranceOnBusiness = considerSocialInsurance 
+        ? Math.min(businessTaxableIncome * 0.1, 830000) // 上限83万円
+        : 0;
+    
+    const totalTax = incomeTax + residentTax + businessTax + socialInsurance.total() + healthInsuranceOnBusiness;
+    const netIncome = salary + businessProfit - totalTax;
+    
+    return {
+        businessIncome: businessProfit,
+        incomeTax,
+        residentTax,
+        businessTax,
+        healthInsurance: healthInsuranceOnBusiness,
+        socialInsurance: socialInsurance.total(),
+        totalTax,
+        netIncome
+    };
+}
+
+// 法人の税務計算
+function calculateCorporation(businessIncome, businessExpenses, desiredSalary, corporationCosts, considerSocialInsurance) {
+    const businessProfit = businessIncome - businessExpenses;
+    
+    // 役員報酬を経費として控除
+    const corporateTaxableIncome = Math.max(0, businessProfit - desiredSalary);
+    
+    // 法人税等の計算
+    const corporationTax = corporateTaxableIncome <= 8000000
+        ? corporateTaxableIncome * TAX_RATES.corporationTax.small
+        : 8000000 * TAX_RATES.corporationTax.small + 
+          (corporateTaxableIncome - 8000000) * TAX_RATES.corporationTax.large;
+    
+    const localTax = corporateTaxableIncome * TAX_RATES.corporationTax.localTax;
+    const totalCorporationTax = corporationTax + localTax;
+    
+    // 役員報酬に対する個人税
+    const salaryDeduction = calculateSalaryDeduction(desiredSalary);
+    const salaryTaxableIncome = Math.max(0, desiredSalary - salaryDeduction - DEDUCTIONS.basic);
+    const personalIncomeTax = calculateIncomeTax(salaryTaxableIncome);
+    const personalResidentTax = calculateResidentTax(Math.max(0, desiredSalary - salaryDeduction));
+    
+    // 社会保険料（役員報酬分）
+    const socialInsurance = calculateSocialInsurance(desiredSalary);
+    
+    // 法人化費用（年割り：3年で償却）
+    const annualSetupCost = corporationCosts / 3;
+    
+    const totalPersonalTax = personalIncomeTax + personalResidentTax + socialInsurance.total();
+    const netCorporateIncome = businessProfit - desiredSalary - totalCorporationTax - annualSetupCost;
+    const netPersonalIncome = desiredSalary - totalPersonalTax;
+    const totalNetIncome = netCorporateIncome + netPersonalIncome;
+    
+    return {
+        corporateTaxableIncome,
+        corporationTax: totalCorporationTax,
+        personalTax: personalIncomeTax + personalResidentTax,
+        socialInsurance: socialInsurance.total(),
+        setupCost: annualSetupCost,
+        salary: desiredSalary,
+        netCorporateIncome,
+        netPersonalIncome,
+        netIncome: totalNetIncome
+    };
+}
+
+// 分岐点計算
+function calculateBreakEvenPoint(salary, businessExpenses, corporationCosts, expectedGrowth) {
+    // 様々な事業収入レベルで個人と法人を比較
+    const incomePoints = [];
+    for (let income = 1000000; income <= 20000000; income += 500000) {
+        const individual = calculateIndividualBusiness(salary, income, businessExpenses, true);
+        const corporation = calculateCorporation(income, businessExpenses, salary * 0.8, corporationCosts, true);
+        
+        incomePoints.push({
+            income,
+            individualNet: individual.netIncome,
+            corporationNet: corporation.netIncome,
+            difference: corporation.netIncome - individual.netIncome
+        });
+    }
+    
+    // 分岐点を見つける
+    let breakEvenIncome = null;
+    for (let i = 0; i < incomePoints.length - 1; i++) {
+        if (incomePoints[i].difference <= 0 && incomePoints[i + 1].difference > 0) {
+            breakEvenIncome = incomePoints[i + 1].income;
+            break;
+        }
+    }
+    
+    return {
+        breakEvenIncome: breakEvenIncome || 10000000, // デフォルト1000万円
+        incomePoints
+    };
+}
+
+// 将来予測計算
+function calculateFutureProjection(currentIncome, growthRate, breakEvenPoint, years) {
+    const projections = [];
+    let income = currentIncome;
+    
+    for (let year = 1; year <= years; year++) {
+        income = income * (1 + growthRate / 100);
+        
+        const isAboveBreakEven = income >= breakEvenPoint.breakEvenIncome;
+        const recommendation = isAboveBreakEven ? "法人化推奨" : "個人事業主継続";
+        
+        projections.push({
+            year,
+            projectedIncome: income,
+            isAboveBreakEven,
+            recommendation,
+            potentialSavings: isAboveBreakEven ? income * 0.05 : 0 // 概算節税額
+        });
+    }
+    
+    return projections;
+}
+
+// 法人化推奨判定
+function generateIncorporationRecommendation(individual, corporation, breakEvenPoint, currentIncome) {
+    const currentDifference = corporation.netIncome - individual.netIncome;
+    const isCurrentlyBeneficial = currentDifference > 0;
+    const isAboveBreakEven = currentIncome >= breakEvenPoint.breakEvenIncome;
+    
+    let recommendation = "";
+    let reasoning = [];
+    let actionItems = [];
+    
+    if (isCurrentlyBeneficial && isAboveBreakEven) {
+        recommendation = "🚀 法人化を強く推奨します";
+        reasoning.push(`現在の事業収入（${formatCurrency(currentIncome)}）では法人化により年間${formatCurrency(currentDifference)}の節税効果があります`);
+        reasoning.push(`分岐点（${formatCurrency(breakEvenPoint.breakEvenIncome)}）を上回っており、継続的なメリットが期待できます`);
+        
+        actionItems.push("1. 司法書士・税理士への相談");
+        actionItems.push("2. 法人設立の準備（定款作成等）");
+        actionItems.push("3. 法人口座開設の手続き");
+        actionItems.push("4. 会計ソフトの導入検討");
+    } else if (!isCurrentlyBeneficial && isAboveBreakEven) {
+        recommendation = "⚠️ 法人化の検討時期です";
+        reasoning.push(`現在は個人事業主の方が${formatCurrency(Math.abs(currentDifference))}有利ですが、分岐点に近づいています`);
+        reasoning.push("事業の成長に合わせて法人化を検討することをお勧めします");
+        
+        actionItems.push("1. 四半期ごとの収益状況をモニタリング");
+        actionItems.push("2. 法人化の準備資料を整備");
+        actionItems.push("3. 税理士への事前相談");
+    } else {
+        recommendation = "📊 現在は個人事業主が有利です";
+        reasoning.push(`現在の事業収入では個人事業主の方が年間${formatCurrency(Math.abs(currentDifference))}有利です`);
+        reasoning.push(`分岐点（${formatCurrency(breakEvenPoint.breakEvenIncome)}）到達時に再検討をお勧めします`);
+        
+        actionItems.push("1. 事業拡大に注力");
+        actionItems.push("2. 青色申告の活用");
+        actionItems.push("3. 経費管理の最適化");
+        actionItems.push("4. 定期的な損益状況の確認");
+    }
+    
+    return {
+        recommendation,
+        reasoning,
+        actionItems,
+        isCurrentlyBeneficial,
+        isAboveBreakEven
+    };
+}
+
 // ROI結果表示更新
 function updateROIDisplay(result) {
     // メトリクス表示
@@ -432,7 +697,185 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('roiResults').scrollIntoView({ behavior: 'smooth' });
         });
     }
+
+    // 法人化分析フォーム処理
+    const incorporationForm = document.getElementById('incorporationForm');
+    if (incorporationForm) {
+        incorporationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 入力値の取得
+            const salary = parseInt(document.getElementById('incSalary').value) || 0;
+            const businessIncome = parseInt(document.getElementById('incBusinessIncome').value) || 0;
+            const businessExpenses = parseInt(document.getElementById('incBusinessExpenses').value) || 0;
+            const expectedGrowth = parseInt(document.getElementById('incExpectedGrowth').value) || 0;
+            const desiredSalary = parseInt(document.getElementById('incDesiredSalary').value) || salary;
+            const corporationCosts = parseInt(document.getElementById('incCorporationCosts').value) || 300000;
+            const considerSocialInsurance = document.getElementById('incConsiderSocialInsurance').checked;
+            const considerRetirement = document.getElementById('incConsiderRetirement').checked;
+            
+            // バリデーション
+            if (businessIncome <= 0) {
+                alert('事業収入を入力してください');
+                return;
+            }
+            
+            if (businessExpenses > businessIncome) {
+                alert('事業経費は事業収入以下で入力してください');
+                return;
+            }
+            
+            if (expectedGrowth < 0 || expectedGrowth > 100) {
+                alert('成長率は0-100%の範囲で入力してください');
+                return;
+            }
+            
+            // 法人化分析実行
+            const analysisData = {
+                salary,
+                businessIncome,
+                businessExpenses,
+                expectedGrowth,
+                desiredSalary,
+                corporationCosts,
+                considerSocialInsurance,
+                considerRetirement
+            };
+            
+            const analysisResult = calculateIncorporationAnalysis(analysisData);
+            
+            // 結果表示
+            updateIncorporationDisplay(analysisResult);
+            
+            // 結果セクション表示
+            document.getElementById('incorporationResults').style.display = 'block';
+            document.getElementById('incorporationResults').scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });
+
+// 法人化分析結果表示更新
+function updateIncorporationDisplay(result) {
+    // サマリー表示
+    document.getElementById('incorporationRecommendation').textContent = result.recommendation.recommendation;
+    document.getElementById('incorporationBreakeven').textContent = 
+        `分岐点: ${formatCurrency(result.breakEvenPoint.breakEvenIncome)} | 現在の差額: ${formatCurrency(result.currentDifference)}`;
+    
+    // 個人事業主データ
+    document.getElementById('indBusinessIncome').textContent = formatCurrency(result.individual.businessIncome);
+    document.getElementById('indIncomeTax').textContent = formatCurrency(result.individual.incomeTax);
+    document.getElementById('indResidentTax').textContent = formatCurrency(result.individual.residentTax);
+    document.getElementById('indBusinessTax').textContent = formatCurrency(result.individual.businessTax);
+    document.getElementById('indHealthInsurance').textContent = formatCurrency(result.individual.healthInsurance);
+    document.getElementById('indNetIncome').textContent = formatCurrency(result.individual.netIncome);
+    
+    // 法人データ
+    document.getElementById('corpSalary').textContent = formatCurrency(result.corporation.salary);
+    document.getElementById('corpTax').textContent = formatCurrency(result.corporation.corporationTax);
+    document.getElementById('corpPersonalTax').textContent = formatCurrency(result.corporation.personalTax);
+    document.getElementById('corpSocialInsurance').textContent = formatCurrency(result.corporation.socialInsurance);
+    document.getElementById('corpSetupCost').textContent = formatCurrency(result.corporation.setupCost);
+    document.getElementById('corpNetIncome').textContent = formatCurrency(result.corporation.netIncome);
+    
+    // 分岐点チャート表示
+    updateBreakEvenChart(result.breakEvenPoint);
+    
+    // 将来予測表示
+    updateFutureProjection(result.futureProjection);
+    
+    // 行動計画表示
+    updateActionPlan(result.recommendation);
+}
+
+// 分岐点チャート表示
+function updateBreakEvenChart(breakEvenData) {
+    const chartContainer = document.getElementById('breakEvenChart');
+    const points = breakEvenData.incomePoints.filter((_, i) => i % 4 === 0); // 表示間隔調整
+    
+    chartContainer.innerHTML = `
+        <div class="space-y-2">
+            <div class="text-sm text-gray-600 mb-4">
+                <span class="inline-block w-4 h-4 bg-blue-500 rounded mr-2"></span>個人事業主
+                <span class="inline-block w-4 h-4 bg-purple-500 rounded mr-2 ml-4"></span>法人
+                <span class="ml-4 font-semibold">分岐点: ${formatCurrency(breakEvenData.breakEvenIncome)}</span>
+            </div>
+            ${points.map(point => {
+                const maxIncome = Math.max(point.individualNet, point.corporationNet);
+                const individualWidth = (point.individualNet / maxIncome) * 100;
+                const corporationWidth = (point.corporationNet / maxIncome) * 100;
+                const isBreakEven = point.income >= breakEvenData.breakEvenIncome;
+                
+                return `
+                    <div class="border-l-4 ${isBreakEven ? 'border-green-500' : 'border-gray-300'} pl-4 py-2">
+                        <div class="text-sm font-medium">${formatCurrency(point.income)}</div>
+                        <div class="mt-1 space-y-1">
+                            <div class="flex items-center">
+                                <span class="w-16 text-xs">個人:</span>
+                                <div class="flex-1 bg-gray-200 rounded h-4 mx-2">
+                                    <div class="bg-blue-500 h-4 rounded" style="width: ${individualWidth}%"></div>
+                                </div>
+                                <span class="text-xs w-20">${formatCurrency(point.individualNet)}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-16 text-xs">法人:</span>
+                                <div class="flex-1 bg-gray-200 rounded h-4 mx-2">
+                                    <div class="bg-purple-500 h-4 rounded" style="width: ${corporationWidth}%"></div>
+                                </div>
+                                <span class="text-xs w-20">${formatCurrency(point.corporationNet)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// 将来予測表示
+function updateFutureProjection(projections) {
+    const projectionContainer = document.getElementById('futureProjection');
+    
+    projectionContainer.innerHTML = `
+        <div class="space-y-3">
+            ${projections.map(proj => `
+                <div class="flex items-center justify-between p-3 rounded-lg ${proj.isAboveBreakEven ? 'bg-green-50' : 'bg-gray-50'}">
+                    <div>
+                        <span class="font-semibold">${proj.year}年後</span>
+                        <span class="text-gray-600 ml-2">予想収入: ${formatCurrency(proj.projectedIncome)}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold ${proj.isAboveBreakEven ? 'text-green-600' : 'text-gray-600'}">
+                            ${proj.recommendation}
+                        </div>
+                        ${proj.potentialSavings > 0 ? `<div class="text-sm text-green-600">予想節税: ${formatCurrency(proj.potentialSavings)}</div>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// 行動計画表示
+function updateActionPlan(recommendation) {
+    const actionPlanContainer = document.getElementById('actionPlan');
+    
+    actionPlanContainer.innerHTML = `
+        <div class="space-y-4">
+            <div class="space-y-2">
+                <h4 class="font-semibold text-gray-800">判定理由</h4>
+                ${recommendation.reasoning.map(reason => 
+                    `<p class="text-gray-700">• ${reason}</p>`
+                ).join('')}
+            </div>
+            <div class="space-y-2">
+                <h4 class="font-semibold text-gray-800">推奨アクション</h4>
+                ${recommendation.actionItems.map(action => 
+                    `<p class="text-gray-700">${action}</p>`
+                ).join('')}
+            </div>
+        </div>
+    `;
+}
 
 // スムーススクロール
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {

@@ -68,12 +68,12 @@
 
                     <div class="bg-white rounded-lg shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
                         <svg class="w-12 h-12 text-purple-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                         </svg>
-                        <h3 class="text-xl font-semibold mb-2">確定申告支援</h3>
-                        <p class="text-gray-600 mb-4">計算結果を元に確定申告の準備をサポート</p>
-                        <button class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors opacity-50 cursor-not-allowed">
-                            準備中
+                        <h3 class="text-xl font-semibold mb-2">法人化分析</h3>
+                        <p class="text-gray-600 mb-4">個人事業主と法人の税負担比較・最適タイミング分析</p>
+                        <button onclick="showIncorporationAnalysis()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                            分析開始
                         </button>
                     </div>
                 </div>
@@ -102,10 +102,10 @@
                     <div class="bg-green-50 p-6 rounded-lg">
                         <h3 class="text-xl font-semibold mb-4 text-green-900">Phase 2: 拡張機能</h3>
                         <ul class="space-y-2 text-gray-700">
+                            <li>✓ 法人化分岐点分析</li>
+                            <li>✓ 最適タイミング提案</li>
                             <li>• 経費管理・最適化</li>
                             <li>• 確定申告書作成補助</li>
-                            <li>• 副業時間管理</li>
-                            <li>• 収入予測・シミュレーション</li>
                         </ul>
                     </div>
                 </div>
@@ -252,6 +252,184 @@
                     <button onclick="hideROIDashboard()" class="mt-6 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
                         戻る
                     </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Incorporation Analysis Section -->
+        <section id="incorporation-analysis" class="py-16 bg-white" style="display: none;">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-8">
+                    <h2 class="text-4xl font-bold text-gray-900 mb-4">法人化分岐点分析</h2>
+                    <p class="text-lg text-gray-600">個人事業主と法人の税負担を比較し、最適な法人化タイミングを判定</p>
+                </div>
+
+                <!-- 法人化分析入力フォーム -->
+                <div class="max-w-4xl mx-auto mb-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            法人化分析データ入力
+                        </h3>
+                        <form id="incorporationForm" class="space-y-6">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="incSalary" class="block text-sm font-medium text-gray-700 mb-2">現在の給与収入（円）</label>
+                                    <input type="number" id="incSalary" placeholder="5000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+
+                                <div>
+                                    <label for="incBusinessIncome" class="block text-sm font-medium text-gray-700 mb-2">事業収入（円）</label>
+                                    <input type="number" id="incBusinessIncome" placeholder="3000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+
+                                <div>
+                                    <label for="incBusinessExpenses" class="block text-sm font-medium text-gray-700 mb-2">事業経費（円）</label>
+                                    <input type="number" id="incBusinessExpenses" placeholder="800000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+
+                                <div>
+                                    <label for="incExpectedGrowth" class="block text-sm font-medium text-gray-700 mb-2">年間成長率（%）</label>
+                                    <input type="number" id="incExpectedGrowth" placeholder="20" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+
+                                <div>
+                                    <label for="incDesiredSalary" class="block text-sm font-medium text-gray-700 mb-2">希望役員報酬（円）</label>
+                                    <input type="number" id="incDesiredSalary" placeholder="4000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+
+                                <div>
+                                    <label for="incCorporationCosts" class="block text-sm font-medium text-gray-700 mb-2">法人化費用（円）</label>
+                                    <input type="number" id="incCorporationCosts" placeholder="300000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-900 mb-2">追加オプション</h4>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="incConsiderSocialInsurance" class="mr-2">
+                                        <span class="text-sm text-gray-700">社会保険料の違いを考慮</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="incConsiderRetirement" class="mr-2">
+                                        <span class="text-sm text-gray-700">退職金・小規模企業共済を考慮</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold">
+                                法人化分岐点を分析する
+                            </button>
+                        </form>
+
+                        <!-- 法人化分析結果 -->
+                        <div id="incorporationResults" class="mt-8" style="display: none;">
+                            <!-- 分析結果サマリー -->
+                            <div class="mb-8">
+                                <h3 class="text-xl font-semibold mb-4">🎯 分析結果サマリー</h3>
+                                <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
+                                    <div id="incorporationRecommendation" class="text-lg font-semibold mb-2">分析中...</div>
+                                    <div id="incorporationBreakeven" class="text-gray-600">分岐点を計算中...</div>
+                                </div>
+                            </div>
+
+                            <!-- 比較テーブル -->
+                            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                                <!-- 個人事業主 -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 class="text-xl font-semibold mb-4 text-blue-600">👤 個人事業主の場合</h3>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">事業所得</span>
+                                            <span id="indBusinessIncome" class="font-semibold">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">所得税</span>
+                                            <span id="indIncomeTax" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">住民税</span>
+                                            <span id="indResidentTax" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">事業税</span>
+                                            <span id="indBusinessTax" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">国民健康保険</span>
+                                            <span id="indHealthInsurance" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="border-t pt-3 flex justify-between font-bold">
+                                            <span>手取り額</span>
+                                            <span id="indNetIncome" class="text-blue-600">¥0</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 法人 -->
+                                <div class="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 class="text-xl font-semibold mb-4 text-purple-600">🏢 法人の場合</h3>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">役員報酬</span>
+                                            <span id="corpSalary" class="font-semibold">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">法人税等</span>
+                                            <span id="corpTax" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">所得税・住民税</span>
+                                            <span id="corpPersonalTax" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">社会保険料</span>
+                                            <span id="corpSocialInsurance" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">法人化費用（年割）</span>
+                                            <span id="corpSetupCost" class="font-semibold text-red-600">¥0</span>
+                                        </div>
+                                        <div class="border-t pt-3 flex justify-between font-bold">
+                                            <span>実質手取り額</span>
+                                            <span id="corpNetIncome" class="text-purple-600">¥0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 年収別分岐点グラフ -->
+                            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                                <h3 class="text-xl font-semibold mb-4">📊 年収別税負担比較</h3>
+                                <div id="breakEvenChart" class="h-64">
+                                    <div class="text-center text-gray-500 mt-20">分岐点データを計算中...</div>
+                                </div>
+                            </div>
+
+                            <!-- 法人化シミュレーション -->
+                            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                                <h3 class="text-xl font-semibold mb-4">📈 将来予測シミュレーション</h3>
+                                <div id="futureProjection" class="space-y-4">
+                                    <div class="text-center text-gray-500">将来予測を計算中...</div>
+                                </div>
+                            </div>
+
+                            <!-- 行動計画 -->
+                            <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold mb-4">📋 推奨行動計画</h3>
+                                <div id="actionPlan" class="space-y-2">
+                                    <p class="text-gray-600">分析結果に基づく具体的な行動計画を表示します...</p>
+                                </div>
+                            </div>
+
+                            <button onclick="hideIncorporationAnalysis()" class="mt-6 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                                戻る
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
