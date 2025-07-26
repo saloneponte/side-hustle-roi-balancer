@@ -258,91 +258,6 @@ function generateROISuggestions(metrics) {
     return suggestions;
 }
 
-// フォーム送信処理
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('taxForm');
-    
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // 入力値の取得
-        const salary = parseInt(document.getElementById('salary').value) || 0;
-        const sideIncome = parseInt(document.getElementById('sideIncome').value) || 0;
-        const expenses = parseInt(document.getElementById('expenses').value) || 0;
-        
-        // バリデーション
-        if (salary < 0 || sideIncome < 0 || expenses < 0) {
-            alert('正の数値を入力してください');
-            return;
-        }
-        
-        if (expenses > sideIncome) {
-            alert('経費は副業収入以下で入力してください');
-            return;
-        }
-        
-        // 計算実行
-        const result = calculateTax(salary, sideIncome, expenses);
-        
-        // 結果表示
-        document.getElementById('totalIncome').textContent = formatCurrency(result.totalIncome);
-        document.getElementById('netIncome').textContent = formatCurrency(result.netIncome);
-        document.getElementById('incomeTax').textContent = formatCurrency(result.incomeTax);
-        document.getElementById('residentTax').textContent = formatCurrency(result.residentTax);
-        document.getElementById('socialInsurance').textContent = formatCurrency(result.socialInsurance);
-        document.getElementById('totalTax').textContent = formatCurrency(result.totalTax);
-        
-        // 比較データ表示
-        document.getElementById('additionalTax').textContent = formatCurrency(result.comparison.additionalTax);
-        document.getElementById('netIncrease').textContent = formatCurrency(result.comparison.netIncrease);
-        document.getElementById('roi').textContent = formatPercentage(result.comparison.roi);
-        
-        // 結果セクション表示
-        showResults();
-    });
-
-    // ROIフォーム処理
-    const roiForm = document.getElementById('roiForm');
-    if (roiForm) {
-        roiForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // 入力値の取得
-            const salary = parseInt(document.getElementById('roiSalary').value) || 0;
-            const sideIncome = parseInt(document.getElementById('roiSideIncome').value) || 0;
-            const expenses = parseInt(document.getElementById('roiExpenses').value) || 0;
-            const timeInvested = parseInt(document.getElementById('roiTimeInvested').value) || 0;
-            const initialInvestment = parseInt(document.getElementById('roiInitialInvestment').value) || 0;
-            
-            // バリデーション
-            if (salary < 0 || sideIncome < 0 || expenses < 0 || timeInvested < 0 || initialInvestment < 0) {
-                alert('正の数値を入力してください');
-                return;
-            }
-            
-            if (expenses > sideIncome) {
-                alert('経費は副業収入以下で入力してください');
-                return;
-            }
-            
-            if (timeInvested === 0) {
-                alert('投下時間を入力してください');
-                return;
-            }
-            
-            // ROI計算実行
-            const roiResult = calculateROI(salary, sideIncome, expenses, timeInvested, initialInvestment);
-            
-            // 結果表示
-            updateROIDisplay(roiResult);
-            
-            // 結果セクション表示
-            document.getElementById('roiResults').style.display = 'block';
-            document.getElementById('roiResults').scrollIntoView({ behavior: 'smooth' });
-        });
-    }
-});
-
 // ROI結果表示更新
 function updateROIDisplay(result) {
     // メトリクス表示
@@ -433,6 +348,90 @@ function updateSimpleCharts(result) {
         </div>
     `;
 }
+
+// フォーム送信処理とイベントリスナー
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('taxForm');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 入力値の取得
+        const salary = parseInt(document.getElementById('salary').value) || 0;
+        const sideIncome = parseInt(document.getElementById('sideIncome').value) || 0;
+        const expenses = parseInt(document.getElementById('expenses').value) || 0;
+        
+        // バリデーション
+        if (salary < 0 || sideIncome < 0 || expenses < 0) {
+            alert('正の数値を入力してください');
+            return;
+        }
+        
+        if (expenses > sideIncome) {
+            alert('経費は副業収入以下で入力してください');
+            return;
+        }
+        
+        // 計算実行
+        const result = calculateTax(salary, sideIncome, expenses);
+        
+        // 結果表示
+        document.getElementById('totalIncome').textContent = formatCurrency(result.totalIncome);
+        document.getElementById('netIncome').textContent = formatCurrency(result.netIncome);
+        document.getElementById('incomeTax').textContent = formatCurrency(result.incomeTax);
+        document.getElementById('residentTax').textContent = formatCurrency(result.residentTax);
+        document.getElementById('socialInsurance').textContent = formatCurrency(result.socialInsurance);
+        document.getElementById('totalTax').textContent = formatCurrency(result.totalTax);
+        
+        // 比較データ表示
+        document.getElementById('additionalTax').textContent = formatCurrency(result.comparison.additionalTax);
+        document.getElementById('netIncrease').textContent = formatCurrency(result.comparison.netIncrease);
+        document.getElementById('roi').textContent = formatPercentage(result.comparison.roi);
+        
+        // 結果セクション表示
+        showResults();
+    });
+
+    // ROIフォーム処理
+    const roiForm = document.getElementById('roiForm');
+    if (roiForm) {
+        roiForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 入力値の取得
+            const salary = parseInt(document.getElementById('roiSalary').value) || 0;
+            const sideIncome = parseInt(document.getElementById('roiSideIncome').value) || 0;
+            const expenses = parseInt(document.getElementById('roiExpenses').value) || 0;
+            const timeInvested = parseInt(document.getElementById('roiTimeInvested').value) || 0;
+            const initialInvestment = parseInt(document.getElementById('roiInitialInvestment').value) || 0;
+            
+            // バリデーション
+            if (salary < 0 || sideIncome < 0 || expenses < 0 || timeInvested < 0 || initialInvestment < 0) {
+                alert('正の数値を入力してください');
+                return;
+            }
+            
+            if (expenses > sideIncome) {
+                alert('経費は副業収入以下で入力してください');
+                return;
+            }
+            
+            if (timeInvested === 0) {
+                alert('投下時間を入力してください');
+                return;
+            }
+            
+            // ROI計算実行
+            const roiResult = calculateROI(salary, sideIncome, expenses, timeInvested, initialInvestment);
+            
+            // 結果表示
+            updateROIDisplay(roiResult);
+            
+            // 結果セクション表示
+            document.getElementById('roiResults').style.display = 'block';
+            document.getElementById('roiResults').scrollIntoView({ behavior: 'smooth' });
+        });
+    }
 });
 
 // スムーススクロール
