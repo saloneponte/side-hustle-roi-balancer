@@ -3,544 +3,672 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>副業損益バランサー - 税務計算・ROI分析</title>
-    <meta name="description" content="会社員の副業収入に特化したROI・税務・社会保険インパクト可視化サービス">
+    <title>副業損益バランサー - AI税務アドバイザー</title>
+    <meta name="description" content="会社員の副業収入に特化したAI税務・ROI分析プラットフォーム">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .gradient-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .slide-in-left {
+            animation: slideInLeft 0.5s ease-out;
+        }
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        .step-indicator.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scale(1.1);
+        }
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+            40% { color: black; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+            60% { text-shadow: .25em 0 0 black, .5em 0 0 rgba(0,0,0,0); }
+            80%, 100% { text-shadow: .25em 0 0 black, .5em 0 0 black; }
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
+<body class="bg-gray-50" x-data="taxCalculatorApp()">
+    <!-- Smart Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass-effect" x-show="!showOnboarding">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <div class="flex items-center space-x-2">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2z"/>
-                    </svg>
-                    <span class="text-xl font-bold text-gray-900">副業損益バランサー</span>
-                </div>
-                <nav class="hidden md:flex items-center space-x-6">
-                    <a href="#calculator" class="text-gray-700 hover:text-blue-600 transition-colors">税務計算</a>
-                    <a href="#features" class="text-gray-700 hover:text-blue-600 transition-colors">機能</a>
-                </nav>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="min-h-screen">
-        <!-- Hero Section -->
-        <section class="gradient-bg py-16">
-            <div class="container mx-auto px-4">
-                <div class="text-center mb-16">
-                    <h1 class="text-5xl font-bold text-gray-900 mb-6">副業損益バランサー</h1>
-                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                        会社員の副業収入に特化したROI・税務・社会保険インパクト可視化サービス
-                    </p>
-                </div>
-
-                <div class="grid md:grid-cols-3 gap-8 mb-16">
-                    <div class="bg-white rounded-lg shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-                        <svg class="w-12 h-12 text-blue-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2z"/>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
-                        <h3 class="text-xl font-semibold mb-2">税務計算</h3>
-                        <p class="text-gray-600 mb-4">給与所得と副業所得の合算で正確な税額を計算</p>
-                        <button onclick="showCalculator()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            計算開始
-                        </button>
                     </div>
-
-                    <div class="bg-white rounded-lg shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-                        <svg class="w-12 h-12 text-green-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">副業損益バランサー</h1>
+                        <p class="text-xs text-gray-500">AI税務アドバイザー</p>
+                    </div>
+                </div>
+                
+                <!-- Progress Indicator -->
+                <div class="hidden md:flex items-center space-x-2">
+                    <template x-for="(step, index) in steps" :key="index">
+                        <div class="flex items-center">
+                            <div class="step-indicator w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+                                 :class="currentStep >= index ? 'active' : 'bg-gray-300'">
+                                <span x-text="index + 1"></span>
+                            </div>
+                            <div x-show="index < steps.length - 1" class="w-8 h-0.5 bg-gray-300 mx-1"></div>
+                        </div>
+                    </template>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center space-x-3">
+                    <button @click="saveProgress()" class="text-gray-600 hover:text-gray-900 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
-                        <h3 class="text-xl font-semibold mb-2">ROI分析</h3>
-                        <p class="text-gray-600 mb-4">副業の収益性と税負担のバランスを分析</p>
-                        <button onclick="showROIDashboard()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                            分析画面
-                        </button>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-                        <svg class="w-12 h-12 text-purple-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        <h3 class="text-xl font-semibold mb-2">法人化分析</h3>
-                        <p class="text-gray-600 mb-4">個人事業主と法人の税負担比較・最適タイミング分析</p>
-                        <button onclick="showIncorporationAnalysis()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                            分析開始
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features Section -->
-        <section id="features" class="py-16 bg-white">
-            <div class="container mx-auto px-4">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-4">主な機能</h2>
-                    <p class="text-lg text-gray-600">副業で成功するための包括的なツールセット</p>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <div class="bg-blue-50 p-6 rounded-lg">
-                        <h3 class="text-xl font-semibold mb-4 text-blue-900">Phase 1: 基本機能</h3>
-                        <ul class="space-y-2 text-gray-700">
-                            <li>✓ 税額計算（所得税・住民税・社会保険料）</li>
-                            <li>✓ 副業なしとの比較分析</li>
-                            <li>✓ ROIダッシュボード</li>
-                            <li>✓ 都道府県別対応</li>
-                        </ul>
-                    </div>
-
-                    <div class="bg-green-50 p-6 rounded-lg">
-                        <h3 class="text-xl font-semibold mb-4 text-green-900">Phase 2: 拡張機能</h3>
-                        <ul class="space-y-2 text-gray-700">
-                            <li>✓ 法人化分岐点分析</li>
-                            <li>✓ 最適タイミング提案</li>
-                            <li>• 経費管理・最適化</li>
-                            <li>• 確定申告書作成補助</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ROI Dashboard Section -->
-        <section id="roi-dashboard" class="py-16 bg-gray-50" style="display: none;">
-            <div class="container mx-auto px-4">
-                <div class="text-center mb-8">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-4">ROI分析ダッシュボード</h2>
-                    <p class="text-lg text-gray-600">副業の投資対効果と収益性を詳細分析</p>
-                </div>
-
-                <!-- ROI入力フォーム -->
-                <div class="max-w-4xl mx-auto mb-8">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-semibold mb-4">ROI分析用データ入力</h3>
-                        <form id="roiForm" class="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="roiSalary" class="block text-sm font-medium text-gray-700 mb-2">年間給与（円）</label>
-                                <input type="number" id="roiSalary" placeholder="5000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label for="roiSideIncome" class="block text-sm font-medium text-gray-700 mb-2">副業収入（円）</label>
-                                <input type="number" id="roiSideIncome" placeholder="1000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label for="roiExpenses" class="block text-sm font-medium text-gray-700 mb-2">副業経費（円）</label>
-                                <input type="number" id="roiExpenses" placeholder="200000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label for="roiTimeInvested" class="block text-sm font-medium text-gray-700 mb-2">投下時間（時間/月）</label>
-                                <input type="number" id="roiTimeInvested" placeholder="50" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div>
-                                <label for="roiInitialInvestment" class="block text-sm font-medium text-gray-700 mb-2">初期投資（円）</label>
-                                <input type="number" id="roiInitialInvestment" placeholder="500000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div class="flex items-end">
-                                <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
-                                    ROI分析実行
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- ROI分析結果 -->
-                <div id="roiResults" class="max-w-6xl mx-auto" style="display: none;">
-                    <!-- メトリクス表示 -->
-                    <div class="grid md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                            <h4 class="text-sm font-medium text-gray-500 mb-2">総合ROI</h4>
-                            <p id="totalROI" class="text-3xl font-bold text-green-600">0%</p>
-                        </div>
-                        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                            <h4 class="text-sm font-medium text-gray-500 mb-2">時間単価</h4>
-                            <p id="hourlyRate" class="text-3xl font-bold text-blue-600">¥0</p>
-                        </div>
-                        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                            <h4 class="text-sm font-medium text-gray-500 mb-2">実質利益率</h4>
-                            <p id="netProfitMargin" class="text-3xl font-bold text-purple-600">0%</p>
-                        </div>
-                        <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                            <h4 class="text-sm font-medium text-gray-500 mb-2">投資回収期間</h4>
-                            <p id="paybackPeriod" class="text-3xl font-bold text-orange-600">0ヶ月</p>
-                        </div>
-                    </div>
-
-                    <!-- 詳細分析 -->
-                    <div class="grid md:grid-cols-2 gap-8 mb-8">
-                        <!-- 収益分析 -->
-                        <div class="bg-white rounded-lg shadow-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">収益分析</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">総収入</span>
-                                    <span id="roiTotalIncome" class="font-semibold">¥0</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">経費</span>
-                                    <span id="roiTotalExpenses" class="font-semibold text-red-600">¥0</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">税負担</span>
-                                    <span id="roiTotalTax" class="font-semibold text-red-600">¥0</span>
-                                </div>
-                                <div class="border-t pt-3 flex justify-between font-bold">
-                                    <span>純利益</span>
-                                    <span id="roiNetProfit" class="text-green-600">¥0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 効率性分析 -->
-                        <div class="bg-white rounded-lg shadow-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">効率性分析</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">月間投入時間</span>
-                                    <span id="roiMonthlyHours" class="font-semibold">0時間</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">年間投入時間</span>
-                                    <span id="roiYearlyHours" class="font-semibold">0時間</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">実質時間単価</span>
-                                    <span id="roiRealHourlyRate" class="font-semibold text-blue-600">¥0</span>
-                                </div>
-                                <div class="border-t pt-3 flex justify-between font-bold">
-                                    <span>効率性スコア</span>
-                                    <span id="roiEfficiencyScore" class="text-purple-600">0点</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- チャート表示エリア -->
-                    <div class="grid md:grid-cols-2 gap-8 mb-8">
-                        <div class="bg-white rounded-lg shadow-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">月別ROI推移</h3>
-                            <div id="roiTrendChart" class="h-64 flex items-center justify-center bg-gray-50 rounded">
-                                <p class="text-gray-500">チャートデータを準備中...</p>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-lg shadow-lg p-6">
-                            <h3 class="text-xl font-semibold mb-4">収益構成比</h3>
-                            <div id="roiCompositionChart" class="h-64 flex items-center justify-center bg-gray-50 rounded">
-                                <p class="text-gray-500">チャートデータを準備中...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 改善提案 -->
-                    <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6">
-                        <h3 class="text-xl font-semibold mb-4">🎯 ROI改善提案</h3>
-                        <div id="roiSuggestions" class="space-y-2">
-                            <p class="text-gray-600">分析結果に基づく改善提案を表示します...</p>
-                        </div>
-                    </div>
-
-                    <button onclick="hideROIDashboard()" class="mt-6 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                        戻る
+                    </button>
+                    <button @click="exportResults()" x-show="hasResults" class="px-4 py-2 gradient-primary text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all">
+                        レポート出力
                     </button>
                 </div>
             </div>
-        </section>
+        </div>
+    </nav>
 
-        <!-- Incorporation Analysis Section -->
-        <section id="incorporation-analysis" class="py-16 bg-white" style="display: none;">
-            <div class="container mx-auto px-4">
+    <!-- Interactive Onboarding -->
+    <div x-show="showOnboarding" class="fixed inset-0 z-50 bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="max-w-2xl w-full glass-effect rounded-2xl p-8 text-white">
                 <div class="text-center mb-8">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-4">法人化分岐点分析</h2>
-                    <p class="text-lg text-gray-600">個人事業主と法人の税負担を比較し、最適な法人化タイミングを判定</p>
+                    <div class="w-20 h-20 gradient-secondary rounded-full mx-auto mb-4 flex items-center justify-center floating-animation">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-4">副業税務の専門家へようこそ</h2>
+                    <p class="text-lg opacity-90">AIがあなたの副業収益を最適化します</p>
                 </div>
+                
+                <div class="space-y-6 mb-8">
+                    <div class="flex items-start space-x-4">
+                        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold">1</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold mb-1">🎯 精密な税務計算</h3>
+                            <p class="text-sm opacity-80">給与と副業収入を組み合わせた正確な税額シミュレーション</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold">2</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold mb-1">📊 インテリジェントROI分析</h3>
+                            <p class="text-sm opacity-80">時間投資と収益性の関係を可視化し、最適化案を提案</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-4">
+                        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold">3</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold mb-1">🏢 法人化タイミング分析</h3>
+                            <p class="text-sm opacity-80">青色申告から法人化まで、あなたに最適な事業形態を判定</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button @click="startOnboarding()" class="px-8 py-3 bg-white text-purple-900 rounded-lg font-semibold hover:bg-opacity-90 transition-all transform hover:scale-105">
+                        分析を開始する
+                    </button>
+                    <p class="text-xs opacity-70 mt-3">3ステップ、約2分で完了</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- 法人化分析入力フォーム -->
-                <div class="max-w-4xl mx-auto mb-8">
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-xl font-semibold mb-4 flex items-center">
-                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
-                            法人化分析データ入力
-                        </h3>
-                        <form id="incorporationForm" class="space-y-6">
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="incSalary" class="block text-sm font-medium text-gray-700 mb-2">現在の給与収入（円）</label>
-                                    <input type="number" id="incSalary" placeholder="5000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+    <!-- Main Application -->
+    <main class="pt-16" x-show="!showOnboarding">
+        <!-- Smart Input Form with Real-time Preview -->
+        <section class="py-12 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+            <div class="container mx-auto px-4">
+                <div class="max-w-6xl mx-auto">
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <!-- Input Panel -->
+                        <div class="space-y-6">
+                            <div class="bg-white rounded-2xl shadow-xl p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h2 class="text-2xl font-bold text-gray-900">収入情報入力</h2>
+                                    <div class="text-sm text-gray-500">
+                                        ステップ <span x-text="currentStep + 1"></span> / <span x-text="steps.length"></span>
+                                    </div>
                                 </div>
-
-                                <div>
-                                    <label for="incBusinessIncome" class="block text-sm font-medium text-gray-700 mb-2">事業収入（円）</label>
-                                    <input type="number" id="incBusinessIncome" placeholder="3000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-gray-200 rounded-full h-2 mb-6">
+                                    <div class="progress-bar h-2 rounded-full transition-all duration-500" 
+                                         :style="`width: ${((currentStep + 1) / steps.length) * 100}%`"></div>
                                 </div>
-
-                                <div>
-                                    <label for="incBusinessExpenses" class="block text-sm font-medium text-gray-700 mb-2">事業経費（円）</label>
-                                    <input type="number" id="incBusinessExpenses" placeholder="800000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                </div>
-
-                                <div>
-                                    <label for="incExpectedGrowth" class="block text-sm font-medium text-gray-700 mb-2">年間成長率（%）</label>
-                                    <input type="number" id="incExpectedGrowth" placeholder="20" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                </div>
-
-                                <div>
-                                    <label for="incDesiredSalary" class="block text-sm font-medium text-gray-700 mb-2">希望役員報酬（円）</label>
-                                    <input type="number" id="incDesiredSalary" placeholder="4000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                </div>
-
-                                <div>
-                                    <label for="incCorporationCosts" class="block text-sm font-medium text-gray-700 mb-2">法人化費用（円）</label>
-                                    <input type="number" id="incCorporationCosts" placeholder="300000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                </div>
-                            </div>
-
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-semibold text-blue-900 mb-2">追加オプション</h4>
-                                <div class="grid md:grid-cols-2 gap-4">
-                                    <label class="flex items-center">
-                                        <input type="checkbox" id="incConsiderSocialInsurance" class="mr-2">
-                                        <span class="text-sm text-gray-700">社会保険料の違いを考慮</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" id="incConsiderRetirement" class="mr-2">
-                                        <span class="text-sm text-gray-700">退職金・小規模企業共済を考慮</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-semibold">
-                                法人化分岐点を分析する
-                            </button>
-                        </form>
-
-                        <!-- 法人化分析結果 -->
-                        <div id="incorporationResults" class="mt-8" style="display: none;">
-                            <!-- 分析結果サマリー -->
-                            <div class="mb-8">
-                                <h3 class="text-xl font-semibold mb-4">🎯 分析結果サマリー</h3>
-                                <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
-                                    <div id="incorporationRecommendation" class="text-lg font-semibold mb-2">分析中...</div>
-                                    <div id="incorporationBreakeven" class="text-gray-600">分岐点を計算中...</div>
-                                </div>
-                            </div>
-
-                            <!-- 比較テーブル -->
-                            <div class="grid md:grid-cols-2 gap-8 mb-8">
-                                <!-- 個人事業主 -->
-                                <div class="bg-white rounded-lg shadow-lg p-6">
-                                    <h3 class="text-xl font-semibold mb-4 text-blue-600">👤 個人事業主の場合</h3>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">事業所得</span>
-                                            <span id="indBusinessIncome" class="font-semibold">¥0</span>
+                                
+                                <!-- Dynamic Form Steps -->
+                                <div x-show="currentStep === 0" class="slide-in-left space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-4">💼 基本収入情報</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">年間給与</label>
+                                            <div class="relative">
+                                                <input type="number" x-model="formData.salary" 
+                                                       @input="calculatePreview()"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-8"
+                                                       placeholder="5,000,000">
+                                                <span class="absolute left-3 top-3 text-gray-500">¥</span>
+                                            </div>
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">所得税</span>
-                                            <span id="indIncomeTax" class="font-semibold text-red-600">¥0</span>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">副業年収</label>
+                                            <div class="relative">
+                                                <input type="number" x-model="formData.sideIncome" 
+                                                       @input="calculatePreview()"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-8"
+                                                       placeholder="1,000,000">
+                                                <span class="absolute left-3 top-3 text-gray-500">¥</span>
+                                            </div>
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">住民税</span>
-                                            <span id="indResidentTax" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">事業税</span>
-                                            <span id="indBusinessTax" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">国民健康保険</span>
-                                            <span id="indHealthInsurance" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="border-t pt-3 flex justify-between font-bold">
-                                            <span>手取り額</span>
-                                            <span id="indNetIncome" class="text-blue-600">¥0</span>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">副業経費</label>
+                                            <div class="relative">
+                                                <input type="number" x-model="formData.expenses" 
+                                                       @input="calculatePreview()"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-8"
+                                                       placeholder="200,000">
+                                                <span class="absolute left-3 top-3 text-gray-500">¥</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- 法人 -->
-                                <div class="bg-white rounded-lg shadow-lg p-6">
-                                    <h3 class="text-xl font-semibold mb-4 text-purple-600">🏢 法人の場合</h3>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">役員報酬</span>
-                                            <span id="corpSalary" class="font-semibold">¥0</span>
+                                
+                                <div x-show="currentStep === 1" class="slide-in-left space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📍 地域・家族情報</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">都道府県</label>
+                                            <select x-model="formData.prefecture" @change="calculatePreview()" 
+                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="">選択してください</option>
+                                                <option value="東京都">東京都</option>
+                                                <option value="大阪府">大阪府</option>
+                                                <option value="神奈川県">神奈川県</option>
+                                                <option value="愛知県">愛知県</option>
+                                                <option value="埼玉県">埼玉県</option>
+                                                <option value="千葉県">千葉県</option>
+                                                <option value="福岡県">福岡県</option>
+                                                <option value="北海道">北海道</option>
+                                                <option value="兵庫県">兵庫県</option>
+                                                <option value="静岡県">静岡県</option>
+                                            </select>
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">法人税等</span>
-                                            <span id="corpTax" class="font-semibold text-red-600">¥0</span>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">扶養人数</label>
+                                            <input type="number" x-model="formData.dependents" 
+                                                   @input="calculatePreview()"
+                                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                   placeholder="0" min="0" max="10">
                                         </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">所得税・住民税</span>
-                                            <span id="corpPersonalTax" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">社会保険料</span>
-                                            <span id="corpSocialInsurance" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">法人化費用（年割）</span>
-                                            <span id="corpSetupCost" class="font-semibold text-red-600">¥0</span>
-                                        </div>
-                                        <div class="border-t pt-3 flex justify-between font-bold">
-                                            <span>実質手取り額</span>
-                                            <span id="corpNetIncome" class="text-purple-600">¥0</span>
+                                        <div class="space-y-3">
+                                            <label class="flex items-center">
+                                                <input type="checkbox" x-model="formData.isMarried" @change="calculatePreview()" class="mr-3 w-4 h-4 text-blue-600">
+                                                <span class="text-sm text-gray-700">配偶者あり</span>
+                                            </label>
+                                            <label x-show="formData.isMarried" class="flex items-center ml-6">
+                                                <input type="checkbox" x-model="formData.hasSpouseIncome" @change="calculatePreview()" class="mr-3 w-4 h-4 text-blue-600">
+                                                <span class="text-sm text-gray-700">配偶者に収入あり</span>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- 年収別分岐点グラフ -->
-                            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                                <h3 class="text-xl font-semibold mb-4">📊 年収別税負担比較</h3>
-                                <div id="breakEvenChart" class="min-h-96 max-h-screen overflow-y-auto">
-                                    <div class="text-center text-gray-500 mt-20">分岐点データを計算中...</div>
+                                
+                                <div x-show="currentStep === 2" class="slide-in-left space-y-4">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ 詳細設定</h3>
+                                    <div class="space-y-4">
+                                        <!-- 青色申告設定 -->
+                                        <div class="bg-blue-50 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-blue-900 mb-3">📋 青色申告設定</h4>
+                                            <div class="space-y-3">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">特別控除額</label>
+                                                    <select x-model="formData.blueReturnDeduction" @change="calculatePreview()"
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                                        <option value="650000">65万円（正規の簿記 + 電子申告）</option>
+                                                        <option value="550000">55万円（正規の簿記のみ）</option>
+                                                        <option value="100000">10万円（簡易帳簿）</option>
+                                                    </select>
+                                                </div>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" x-model="formData.hasFamilyEmployee" @change="calculatePreview()" class="mr-3 w-4 h-4 text-blue-600">
+                                                    <span class="text-sm text-gray-700">青色事業専従者給与あり</span>
+                                                </label>
+                                                <div x-show="formData.hasFamilyEmployee" class="ml-6 space-y-2">
+                                                    <input type="number" x-model="formData.spouseEmployeeSalary" @input="calculatePreview()"
+                                                           placeholder="配偶者給与（年額）" class="w-full px-3 py-2 text-sm border border-gray-300 rounded">
+                                                    <input type="number" x-model="formData.otherFamilySalary" @input="calculatePreview()"
+                                                           placeholder="その他家族給与（年額）" class="w-full px-3 py-2 text-sm border border-gray-300 rounded">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Navigation Buttons -->
+                                <div class="flex justify-between mt-8">
+                                    <button @click="previousStep()" x-show="currentStep > 0" 
+                                            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                        戻る
+                                    </button>
+                                    <div x-show="currentStep === 0"></div>
+                                    
+                                    <button @click="nextStep()" x-show="currentStep < steps.length - 1"
+                                            class="px-6 py-2 gradient-primary text-white rounded-lg hover:shadow-lg transition-all">
+                                        次へ
+                                    </button>
+                                    <button @click="calculateFinal()" x-show="currentStep === steps.length - 1"
+                                            class="px-8 py-2 gradient-secondary text-white rounded-lg hover:shadow-lg transition-all font-semibold">
+                                        分析実行
+                                    </button>
                                 </div>
                             </div>
-
-                            <!-- 法人化シミュレーション -->
-                            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                                <h3 class="text-xl font-semibold mb-4">📈 将来予測シミュレーション</h3>
-                                <div id="futureProjection" class="space-y-4">
-                                    <div class="text-center text-gray-500">将来予測を計算中...</div>
+                        </div>
+                        
+                        <!-- Real-time Preview Panel -->
+                        <div class="space-y-6">
+                            <!-- Quick Preview Card -->
+                            <div class="bg-white rounded-2xl shadow-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">💡 リアルタイム試算</h3>
+                                <div x-show="!isCalculating" class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+                                            <div class="text-sm opacity-80">総収入</div>
+                                            <div class="text-xl font-bold" x-text="formatCurrency(preview.totalIncome)"></div>
+                                        </div>
+                                        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+                                            <div class="text-sm opacity-80">手取り予想</div>
+                                            <div class="text-xl font-bold" x-text="formatCurrency(preview.netIncome)"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="flex justify-between text-sm mb-2">
+                                            <span>実効税率</span>
+                                            <span class="font-semibold" x-text="preview.effectiveTaxRate + '%'"></span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-red-500 h-2 rounded-full transition-all" 
+                                                 :style="`width: ${preview.effectiveTaxRate}%`"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div x-show="isCalculating" class="text-center py-8">
+                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                                    <p class="text-gray-500 loading-dots">計算中</p>
                                 </div>
                             </div>
-
-                            <!-- 行動計画 -->
-                            <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-                                <h3 class="text-xl font-semibold mb-4">📋 推奨行動計画</h3>
-                                <div id="actionPlan" class="space-y-2">
-                                    <p class="text-gray-600">分析結果に基づく具体的な行動計画を表示します...</p>
+                            
+                            <!-- Tips Card -->
+                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-xl p-6 text-white">
+                                <h3 class="text-lg font-semibold mb-3">💡 スマートアドバイス</h3>
+                                <div x-show="tips.length > 0">
+                                    <div x-text="tips[currentTip]" class="text-sm opacity-90 leading-relaxed"></div>
+                                    <button @click="nextTip()" class="mt-3 text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                        次のアドバイス →
+                                    </button>
+                                </div>
+                                <div x-show="tips.length === 0" class="text-sm opacity-80">
+                                    データ入力完了後、個別アドバイスを表示します
                                 </div>
                             </div>
-
-                            <button onclick="hideIncorporationAnalysis()" class="mt-6 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                                戻る
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-
-        <!-- Calculator Section -->
-        <section id="calculator" class="py-16 bg-gray-50" style="display: none;">
+        
+        <!-- Results Dashboard -->
+        <section x-show="hasResults" class="py-12 bg-white">
             <div class="container mx-auto px-4">
-                <div class="text-center mb-8">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-4">税務計算シミュレーター</h2>
-                    <p class="text-lg text-gray-600">給与と副業収入を入力して、税負担と手取りを計算します</p>
-                </div>
-
-                <div class="max-w-4xl mx-auto">
-                    <div class="bg-white rounded-lg shadow-lg p-8">
-                        <form id="taxForm" class="space-y-6">
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="salary" class="block text-sm font-medium text-gray-700 mb-2">年間給与（円）</label>
-                                    <input type="number" id="salary" placeholder="5000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-
-                                <div>
-                                    <label for="sideIncome" class="block text-sm font-medium text-gray-700 mb-2">副業年収（円）</label>
-                                    <input type="number" id="sideIncome" placeholder="1000000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-
-                                <div>
-                                    <label for="expenses" class="block text-sm font-medium text-gray-700 mb-2">副業経費（円）</label>
-                                    <input type="number" id="expenses" placeholder="200000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-
-                                <div>
-                                    <label for="prefecture" class="block text-sm font-medium text-gray-700 mb-2">都道府県</label>
-                                    <select id="prefecture" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">選択してください</option>
-                                        <option value="東京都">東京都</option>
-                                        <option value="大阪府">大阪府</option>
-                                        <option value="神奈川県">神奈川県</option>
-                                        <option value="愛知県">愛知県</option>
-                                        <option value="埼玉県">埼玉県</option>
-                                        <option value="千葉県">千葉県</option>
-                                        <option value="福岡県">福岡県</option>
-                                        <option value="北海道">北海道</option>
-                                        <option value="兵庫県">兵庫県</option>
-                                        <option value="静岡県">静岡県</option>
-                                    </select>
-                                </div>
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-12">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4">📊 詳細分析結果</h2>
+                        <p class="text-lg text-gray-600">あなたの副業収益構造を完全分析</p>
+                    </div>
+                    
+                    <!-- Key Metrics Dashboard -->
+                    <div class="grid md:grid-cols-4 gap-6 mb-12">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-sm opacity-80">総収入</div>
+                                <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
                             </div>
-
-                            <button type="submit" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                                税額を計算する
+                            <div class="text-2xl font-bold" x-text="formatCurrency(results.totalIncome)"></div>
+                            <div class="text-xs opacity-70 mt-2">給与 + 副業収入</div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-sm opacity-80">手取り収入</div>
+                                <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                            <div class="text-2xl font-bold" x-text="formatCurrency(results.netIncome)"></div>
+                            <div class="text-xs opacity-70 mt-2">税引き後実収入</div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-sm opacity-80">税負担合計</div>
+                                <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <div class="text-2xl font-bold" x-text="formatCurrency(results.totalTax)"></div>
+                            <div class="text-xs opacity-70 mt-2">所得税 + 住民税 + 社保</div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-sm opacity-80">実効ROI</div>
+                                <svg class="w-6 h-6 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <div class="text-2xl font-bold" x-text="results.roi + '%'"></div>
+                            <div class="text-xs opacity-70 mt-2">税引き後収益率</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Visualizations -->
+                    <div class="grid lg:grid-cols-2 gap-8 mb-12">
+                        <div class="bg-white rounded-2xl shadow-xl p-6">
+                            <h3 class="text-xl font-semibold mb-6">税負担内訳</h3>
+                            <canvas id="taxBreakdownChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-xl p-6">
+                            <h3 class="text-xl font-semibold mb-6">収入構成分析</h3>
+                            <canvas id="incomeAnalysisChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Interactive Optimization Proposals -->
+                    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-8 mb-8">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900">💡 手取り収入最適化プラン</h3>
+                            <button @click="generateOptimizationPlan()" 
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                最適化プラン生成
                             </button>
-                        </form>
-
-                        <!-- Results -->
-                        <div id="results" class="mt-8" style="display: none;">
-                            <h3 class="text-xl font-semibold mb-4">計算結果</h3>
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div class="bg-blue-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-blue-900 mb-2">総収入</h4>
-                                    <p id="totalIncome" class="text-2xl font-bold text-blue-700">¥0</p>
+                        </div>
+                        
+                        <!-- Optimization Summary -->
+                        <div x-show="optimizationPlan" class="mb-8">
+                            <div class="grid md:grid-cols-4 gap-4 mb-6">
+                                <div class="bg-white rounded-lg p-4 text-center">
+                                    <div class="text-sm text-gray-600 mb-1">現在の手取り</div>
+                                    <div class="text-xl font-bold text-gray-900" x-text="formatCurrency(optimizationPlan?.currentTax?.netIncome || 0)"></div>
                                 </div>
-                                <div class="bg-green-50 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-green-900 mb-2">手取り収入</h4>
-                                    <p id="netIncome" class="text-2xl font-bold text-green-700">¥0</p>
+                                <div class="bg-white rounded-lg p-4 text-center">
+                                    <div class="text-sm text-gray-600 mb-1">最適化後手取り</div>
+                                    <div class="text-xl font-bold text-green-600" x-text="formatCurrency((optimizationPlan?.currentTax?.netIncome || 0) + (optimizationPlan?.totalPotentialSaving || 0))"></div>
+                                </div>
+                                <div class="bg-white rounded-lg p-4 text-center">
+                                    <div class="text-sm text-gray-600 mb-1">年間節税効果</div>
+                                    <div class="text-xl font-bold text-blue-600" x-text="formatCurrency(optimizationPlan?.totalPotentialSaving || 0)"></div>
+                                </div>
+                                <div class="bg-white rounded-lg p-4 text-center">
+                                    <div class="text-sm text-gray-600 mb-1">実行可能項目</div>
+                                    <div class="text-xl font-bold text-purple-600" x-text="(optimizationPlan?.optimizations || []).length + '件'"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optimization Categories -->
+                        <div x-show="optimizationPlan" class="space-y-6">
+                            <!-- Tax Deductions -->
+                            <div class="bg-white rounded-xl p-6 shadow-lg">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3 text-sm">💰</span>
+                                    税額控除・所得控除
+                                </h4>
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <template x-for="opt in (optimizationPlan?.optimizations || []).filter(o => ['税額控除', '所得控除'].includes(o.category))">
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
+                                             @click="toggleOptimization(opt.id)">
+                                            <div class="flex items-start justify-between">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center mb-2">
+                                                        <input type="checkbox" :checked="selectedOptimizations.includes(opt.id)" 
+                                                               class="mr-2 text-blue-600">
+                                                        <h5 class="font-semibold text-gray-900" x-text="opt.title"></h5>
+                                                    </div>
+                                                    <p class="text-sm text-gray-600 mb-2" x-text="opt.description"></p>
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" x-text="opt.difficulty === 'easy' ? '簡単' : opt.difficulty === 'medium' ? '普通' : '困難'"></span>
+                                                        <span class="font-semibold text-green-600" x-text="'年間 +' + formatCurrency(opt.annualBenefit)"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
 
-                            <div class="mt-6 space-y-3">
-                                <h4 class="font-semibold">税負担の内訳</h4>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between">
-                                        <span>所得税</span>
-                                        <span id="incomeTax" class="font-semibold">¥0</span>
+                            <!-- Expense Optimization -->
+                            <div class="bg-white rounded-xl p-6 shadow-lg">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <span class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center mr-3 text-sm">📋</span>
+                                    経費最適化
+                                </h4>
+                                <div x-show="expenseChecklist" class="space-y-4">
+                                    <template x-for="category in Object.values(expenseCategories)" :key="category.category">
+                                        <div class="border border-gray-200 rounded-lg p-4">
+                                            <h5 class="font-semibold text-gray-900 mb-3" x-text="category.category"></h5>
+                                            <div class="grid md:grid-cols-2 gap-3">
+                                                <template x-for="item in category.items" :key="item.name">
+                                                    <div class="flex items-start space-x-3">
+                                                        <input type="checkbox" class="mt-1 text-green-600">
+                                                        <div class="flex-1">
+                                                            <div class="font-medium text-sm" x-text="item.name"></div>
+                                                            <div class="text-xs text-gray-500" x-text="item.description"></div>
+                                                            <div x-show="item.estimatedAmount" class="text-xs text-green-600 font-semibold" 
+                                                                 x-text="'年間: ' + formatCurrency(item.estimatedAmount || 0)"></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Furusato Nozei Calculator -->
+                            <div class="bg-white rounded-xl p-6 shadow-lg">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <span class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center mr-3 text-sm">🏛️</span>
+                                    ふるさと納税シミュレーター
+                                </h4>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">寄附希望額（円）</label>
+                                                <input type="number" x-model="furusatoAmount" @input="calculateFurusatoBenefit()"
+                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                                                       :placeholder="furusatoMaxAmount">
+                                            </div>
+                                            <div class="text-sm text-gray-600">
+                                                <p>💡 あなたの寄附上限額: <span class="font-semibold" x-text="formatCurrency(furusatoMaxAmount)"></span></p>
+                                                <p class="text-xs text-gray-500 mt-1">※上限額を超えると自己負担が増加します</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span>住民税</span>
-                                        <span id="residentTax" class="font-semibold">¥0</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span>社会保険料</span>
-                                        <span id="socialInsurance" class="font-semibold">¥0</span>
-                                    </div>
-                                    <div class="border-t pt-2 flex justify-between font-bold">
-                                        <span>税負担合計</span>
-                                        <span id="totalTax" class="text-red-600">¥0</span>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <h5 class="font-semibold text-gray-900 mb-3">節税効果シミュレーション</h5>
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex justify-between">
+                                                <span>寄附額</span>
+                                                <span class="font-semibold" x-text="formatCurrency(furusatoAmount || 0)"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>自己負担額</span>
+                                                <span class="font-semibold text-red-600">¥2,000</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>税金軽減額</span>
+                                                <span class="font-semibold text-blue-600" x-text="formatCurrency(Math.max(0, (furusatoAmount || 0) - 2000))"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>返礼品価値（30%想定）</span>
+                                                <span class="font-semibold text-green-600" x-text="formatCurrency((furusatoAmount || 0) * 0.3)"></span>
+                                            </div>
+                                            <div class="border-t pt-2 flex justify-between font-semibold">
+                                                <span>実質メリット</span>
+                                                <span class="text-green-600" x-text="formatCurrency(Math.max(0, (furusatoAmount || 0) * 0.3 - 2000))"></span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="mt-6 bg-yellow-50 p-4 rounded-lg">
-                                <h4 class="font-semibold text-yellow-900 mb-2">副業なしとの比較</h4>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span>追加税負担</span>
-                                        <span id="additionalTax" class="font-semibold text-red-600">¥0</span>
+                            <!-- Investment Options -->
+                            <div class="bg-white rounded-xl p-6 shadow-lg">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mr-3 text-sm">📈</span>
+                                    資産運用・投資優遇制度
+                                </h4>
+                                <div class="grid md:grid-cols-3 gap-4">
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                                        <h5 class="font-semibold text-gray-900 mb-2">つみたてNISA</h5>
+                                        <p class="text-sm text-gray-600 mb-3">年間40万円まで非課税投資</p>
+                                        <div class="text-xs space-y-1">
+                                            <div class="flex justify-between">
+                                                <span>年間投資枠</span>
+                                                <span class="font-semibold">¥400,000</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>20年運用想定</span>
+                                                <span class="font-semibold text-green-600">+¥2,653,298</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span>実質増収</span>
-                                        <span id="netIncrease" class="font-semibold text-green-600">¥0</span>
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                                        <h5 class="font-semibold text-gray-900 mb-2">iDeCo</h5>
+                                        <p class="text-sm text-gray-600 mb-3">個人型確定拠出年金</p>
+                                        <div class="text-xs space-y-1">
+                                            <div class="flex justify-between">
+                                                <span>年間拠出枠</span>
+                                                <span class="font-semibold">¥276,000</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>所得控除効果</span>
+                                                <span class="font-semibold text-blue-600" x-text="formatCurrency(276000 * 0.25)"></span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span>ROI</span>
-                                        <span id="roi" class="font-semibold text-blue-600">0.0%</span>
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                                        <h5 class="font-semibold text-gray-900 mb-2">小規模企業共済</h5>
+                                        <p class="text-sm text-gray-600 mb-3">個人事業主向け退職金制度</p>
+                                        <div class="text-xs space-y-1">
+                                            <div class="flex justify-between">
+                                                <span>年間拠出上限</span>
+                                                <span class="font-semibold">¥840,000</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>所得控除効果</span>
+                                                <span class="font-semibold text-blue-600" x-text="formatCurrency(840000 * 0.25)"></span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <button onclick="hideCalculator()" class="mt-6 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                                戻る
-                            </button>
+                            <!-- Action Plan Generator -->
+                            <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4">🎯 最適化実行プラン</h4>
+                                <div x-show="selectedOptimizations.length > 0">
+                                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                                        <div class="bg-white rounded-lg p-4">
+                                            <h5 class="font-semibold text-gray-900 mb-3">予想効果サマリー</h5>
+                                            <div class="space-y-2 text-sm">
+                                                <div class="flex justify-between">
+                                                    <span>選択した項目</span>
+                                                    <span class="font-semibold" x-text="selectedOptimizations.length + '件'"></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span>年間節税効果</span>
+                                                    <span class="font-semibold text-green-600" x-text="formatCurrency(calculateSelectedBenefit())"></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span>手取り増加率</span>
+                                                    <span class="font-semibold text-blue-600" x-text="((calculateSelectedBenefit() / (results.netIncome || 1)) * 100).toFixed(1) + '%'"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-4">
+                                            <h5 class="font-semibold text-gray-900 mb-3">実行スケジュール</h5>
+                                            <div class="space-y-2 text-sm">
+                                                <div class="flex items-center">
+                                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                                    <span>今月開始: 3項目</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                                                    <span>来月開始: 2項目</span>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                                    <span>3ヶ月以内: 1項目</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button @click="generateActionPlan()" 
+                                            class="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-lg hover:shadow-lg transition-all font-semibold">
+                                        詳細実行プランを生成
+                                    </button>
+                                </div>
+                                <div x-show="selectedOptimizations.length === 0" class="text-center text-gray-500 py-8">
+                                    上記の最適化項目から実行したいものを選択してください
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -548,24 +676,414 @@
         </section>
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="container mx-auto px-4">
-            <div class="text-center">
-                <div class="flex items-center justify-center space-x-2 mb-4">
-                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2z"/>
-                    </svg>
-                    <span class="text-xl font-bold">副業損益バランサー</span>
-                </div>
-                <p class="text-gray-400 mb-4 max-w-md mx-auto">
-                    会社員の副業収入に特化したROI・税務・社会保険インパクト可視化サービス
-                </p>
-                <p class="text-gray-400">&copy; 2024 副業損益バランサー. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
+    <!-- Scripts -->
     <script src="js/calculator.js"></script>
+    <script src="js/optimization-engine.js"></script>
+    <script>
+        function taxCalculatorApp() {
+            return {
+                // State Management
+                showOnboarding: localStorage.getItem('onboardingCompleted') !== 'true',
+                currentStep: 0,
+                currentTip: 0,
+                isCalculating: false,
+                hasResults: false,
+                
+                // Form Data
+                formData: {
+                    salary: 5000000,
+                    sideIncome: 1000000,
+                    expenses: 200000,
+                    prefecture: '東京都',
+                    dependents: 0,
+                    isMarried: false,
+                    hasSpouseIncome: false,
+                    blueReturnDeduction: 650000,
+                    hasFamilyEmployee: false,
+                    spouseEmployeeSalary: 0,
+                    otherFamilySalary: 0
+                },
+                
+                // UI Configuration
+                steps: ['基本情報', '地域・家族', '詳細設定'],
+                
+                // Preview Data
+                preview: {
+                    totalIncome: 0,
+                    netIncome: 0,
+                    effectiveTaxRate: 0
+                },
+                
+                // Results Data
+                results: {
+                    totalIncome: 0,
+                    netIncome: 0,
+                    totalTax: 0,
+                    roi: 0
+                },
+                
+                // Smart Tips
+                tips: [
+                    "💡 副業収入が年間20万円を超える場合は確定申告が必要です",
+                    "📊 青色申告を利用すると最大65万円の特別控除を受けられます",
+                    "🏢 年収800万円を超えると法人化のメリットが出始めます",
+                    "💰 経費をしっかり計上することで税負担を大幅に削減できます",
+                    "👨‍👩‍👧‍👦 家族への給与支払いで所得分散効果を活用しましょう"
+                ],
+                
+                // AI Recommendations
+                aiRecommendations: [],
+                
+                // Optimization Engine
+                optimizationPlan: null,
+                selectedOptimizations: [],
+                expenseChecklist: false,
+                expenseCategories: EXPENSE_DATABASE,
+                furusatoAmount: 0,
+                furusatoMaxAmount: 0,
+                
+                // Methods
+                startOnboarding() {
+                    this.showOnboarding = false;
+                    localStorage.setItem('onboardingCompleted', 'true');
+                    this.calculatePreview();
+                },
+                
+                nextStep() {
+                    if (this.currentStep < this.steps.length - 1) {
+                        this.currentStep++;
+                    }
+                },
+                
+                previousStep() {
+                    if (this.currentStep > 0) {
+                        this.currentStep--;
+                    }
+                },
+                
+                nextTip() {
+                    this.currentTip = (this.currentTip + 1) % this.tips.length;
+                },
+                
+                calculatePreview() {
+                    // Simple preview calculation
+                    const totalIncome = (this.formData.salary || 0) + (this.formData.sideIncome || 0);
+                    const estimatedTax = totalIncome * 0.2; // Rough estimation
+                    
+                    this.preview = {
+                        totalIncome: totalIncome,
+                        netIncome: totalIncome - estimatedTax,
+                        effectiveTaxRate: totalIncome > 0 ? Math.round((estimatedTax / totalIncome) * 100) : 0
+                    };
+                    
+                    this.generateSmartTips();
+                },
+                
+                async calculateFinal() {
+                    this.isCalculating = true;
+                    
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Use existing calculator
+                    const result = calculateTax(
+                        this.formData.salary,
+                        this.formData.sideIncome,
+                        this.formData.expenses
+                    );
+                    
+                    this.results = {
+                        totalIncome: result.totalIncome,
+                        netIncome: result.netIncome,
+                        totalTax: result.totalTax,
+                        roi: Math.round(result.comparison.roi * 100)
+                    };
+                    
+                    this.generateAIRecommendations();
+                    this.createCharts();
+                    this.hasResults = true;
+                    this.isCalculating = false;
+                },
+                
+                generateSmartTips() {
+                    // Dynamic tip generation based on input
+                    const newTips = [...this.tips];
+                    
+                    if (this.formData.sideIncome > 200000 && !this.formData.hasFamilyEmployee) {
+                        newTips.push("💡 副業収入が多いので、青色事業専従者給与を検討してみましょう");
+                    }
+                    
+                    if (this.formData.sideIncome > 5000000) {
+                        newTips.push("🏢 年収が高いので、法人化を検討することをお勧めします");
+                    }
+                    
+                    this.tips = newTips;
+                },
+                
+                generateAIRecommendations() {
+                    this.aiRecommendations = [
+                        {
+                            id: 1,
+                            type: 'important',
+                            icon: '💰',
+                            title: '経費最適化',
+                            description: '事業関連経費をさらに20万円計上することで年間約6万円の節税が可能です。',
+                            impact: '年間6万円の節税'
+                        },
+                        {
+                            id: 2,
+                            type: 'good',
+                            icon: '📋',
+                            title: '青色申告活用',
+                            description: '65万円の青色申告特別控除により、年間約13万円の節税効果があります。',
+                            impact: '年間13万円の節税'
+                        },
+                        {
+                            id: 3,
+                            type: 'critical',
+                            icon: '🏢',
+                            title: '法人化検討',
+                            description: '現在の収入レベルでは法人化により年間約25万円の節税が期待できます。',
+                            impact: '年間25万円の節税'
+                        }
+                    ];
+                },
+                
+                createCharts() {
+                    // Tax Breakdown Chart
+                    const taxCtx = document.getElementById('taxBreakdownChart').getContext('2d');
+                    new Chart(taxCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['所得税', '住民税', '社会保険料', '手取り'],
+                            datasets: [{
+                                data: [
+                                    this.results.totalTax * 0.4,
+                                    this.results.totalTax * 0.35,
+                                    this.results.totalTax * 0.25,
+                                    this.results.netIncome
+                                ],
+                                backgroundColor: ['#ef4444', '#f97316', '#3b82f6', '#10b981']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Income Analysis Chart
+                    const incomeCtx = document.getElementById('incomeAnalysisChart').getContext('2d');
+                    new Chart(incomeCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['給与収入', '副業収入'],
+                            datasets: [{
+                                label: '収入額',
+                                data: [this.formData.salary, this.formData.sideIncome],
+                                backgroundColor: ['#3b82f6', '#10b981']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return '¥' + value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+                
+                formatCurrency(amount) {
+                    return new Intl.NumberFormat('ja-JP', {
+                        style: 'currency',
+                        currency: 'JPY',
+                        minimumFractionDigits: 0
+                    }).format(amount || 0);
+                },
+                
+                saveProgress() {
+                    localStorage.setItem('taxCalculatorProgress', JSON.stringify(this.formData));
+                    alert('進捗を保存しました');
+                },
+                
+                exportResults() {
+                    // Export functionality
+                    const data = {
+                        formData: this.formData,
+                        results: this.results,
+                        recommendations: this.aiRecommendations,
+                        optimizationPlan: this.optimizationPlan
+                    };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'tax-analysis-report.json';
+                    a.click();
+                },
+                
+                // Optimization Methods
+                generateOptimizationPlan() {
+                    if (!this.results.totalIncome) {
+                        alert('まず税務計算を実行してください');
+                        return;
+                    }
+                    
+                    const userData = {
+                        salary: this.formData.salary,
+                        sideIncome: this.formData.sideIncome,
+                        expenses: this.formData.expenses,
+                        prefecture: this.formData.prefecture,
+                        businessType: 'individual'
+                    };
+                    
+                    const engine = new OptimizationEngine(userData);
+                    this.optimizationPlan = engine.generateOptimizationPlan();
+                    this.expenseChecklist = true;
+                    
+                    // ふるさと納税上限額を計算
+                    this.calculateFurusatoMaxAmount();
+                },
+                
+                calculateFurusatoMaxAmount() {
+                    const income = this.formData.salary + this.formData.sideIncome;
+                    const residentTax = this.results.residentTax || income * 0.1;
+                    this.furusatoMaxAmount = Math.floor((residentTax * 0.2) / 1000) * 1000;
+                    this.furusatoAmount = this.furusatoMaxAmount;
+                },
+                
+                calculateFurusatoBenefit() {
+                    // リアルタイムでふるさと納税効果を計算
+                    // UI側で計算されるため、ここでは特に処理なし
+                },
+                
+                toggleOptimization(optId) {
+                    if (this.selectedOptimizations.includes(optId)) {
+                        this.selectedOptimizations = this.selectedOptimizations.filter(id => id !== optId);
+                    } else {
+                        this.selectedOptimizations.push(optId);
+                    }
+                },
+                
+                calculateSelectedBenefit() {
+                    if (!this.optimizationPlan) return 0;
+                    
+                    return this.selectedOptimizations.reduce((total, optId) => {
+                        const opt = this.optimizationPlan.optimizations.find(o => o.id === optId);
+                        return total + (opt ? opt.annualBenefit : 0);
+                    }, 0);
+                },
+                
+                generateActionPlan() {
+                    if (this.selectedOptimizations.length === 0) {
+                        alert('実行する最適化項目を選択してください');
+                        return;
+                    }
+                    
+                    const selectedOpts = this.selectedOptimizations.map(id => ({ id, applicableRate: 1 }));
+                    const simulator = new OptimizationSimulator(this.formData, this.optimizationPlan.optimizations);
+                    const simulation = simulator.simulateOptimization(selectedOpts);
+                    const roadmap = simulator.generateRoadmap(selectedOpts);
+                    
+                    // 結果をモーダルまたは新しいセクションで表示
+                    this.showActionPlanModal(simulation, roadmap);
+                },
+                
+                showActionPlanModal(simulation, roadmap) {
+                    const modalContent = `
+                        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                            <div class="bg-white rounded-2xl max-w-4xl w-full max-h-screen overflow-y-auto p-8">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-2xl font-bold text-gray-900">📋 最適化実行プラン</h3>
+                                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                            class="text-gray-500 hover:text-gray-700">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                                    <div class="bg-blue-50 rounded-lg p-6">
+                                        <h4 class="font-semibold text-blue-900 mb-4">💰 効果予測</h4>
+                                        <div class="space-y-3 text-sm">
+                                            <div class="flex justify-between">
+                                                <span>現在の手取り</span>
+                                                <span class="font-semibold">${this.formatCurrency(simulation.currentNetIncome)}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>最適化後手取り</span>
+                                                <span class="font-semibold text-green-600">${this.formatCurrency(simulation.optimizedNetIncome)}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>年間効果額</span>
+                                                <span class="font-semibold text-blue-600">${this.formatCurrency(simulation.totalBenefit)}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>投資回収期間</span>
+                                                <span class="font-semibold">${simulation.paybackPeriod}ヶ月</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-green-50 rounded-lg p-6">
+                                        <h4 class="font-semibold text-green-900 mb-4">📅 実行スケジュール</h4>
+                                        <div class="space-y-2 text-sm">
+                                            ${roadmap.slice(0, 6).map((item, index) => `
+                                                <div class="flex items-center">
+                                                    <span class="w-6 h-6 bg-green-500 text-white rounded-full text-xs flex items-center justify-center mr-3">${item.month}</span>
+                                                    <div>
+                                                        <div class="font-medium">${item.title}</div>
+                                                        <div class="text-xs text-gray-600">${item.description}</div>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-yellow-50 rounded-lg p-6 mb-6">
+                                    <h4 class="font-semibold text-yellow-900 mb-4">⚠️ 実行時の注意点</h4>
+                                    <ul class="text-sm text-yellow-800 space-y-2">
+                                        <li>• 税制改正により控除額や制度内容が変更される場合があります</li>
+                                        <li>• 個別の事情により効果が異なる場合があります</li>
+                                        <li>• 重要な決定の前には税理士等の専門家にご相談ください</li>
+                                        <li>• 経費計上は適正な範囲内で行ってください</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="flex space-x-4">
+                                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                            class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                                        閉じる
+                                    </button>
+                                    <button onclick="window.print()" 
+                                            class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                        プランを印刷
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // モーダルをDOMに追加
+                    const modalElement = document.createElement('div');
+                    modalElement.innerHTML = modalContent;
+                    document.body.appendChild(modalElement.firstElementChild);
+                }
+            }
+        }
+    </script>
 </body>
 </html>
